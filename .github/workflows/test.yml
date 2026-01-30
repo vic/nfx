@@ -1,0 +1,16 @@
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [labeled, opened, synchronize, reopened, review_requested, ready_for_review]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  flake-check:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cachix/install-nix-action@v31
+      - uses: actions/checkout@v4
+      - run: nix flake check
