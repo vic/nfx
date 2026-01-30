@@ -4,42 +4,87 @@
   nix-unit,
 }:
 let
-    topLevelFiles = [
-      ./kernel.nix
-      ./basic.nix
-      ./functor.nix
-      ./monad.nix
-      ./provide.nix
-      ./sequence.nix
-    ];
-    
-    namespacedFiles = [
-      { name = "state"; path = ./state.nix; }
-      { name = "context"; path = ./context.nix; }
-      { name = "handlers"; path = ./handlers.nix; }
-      { name = "lens"; path = ./lens.nix; }
-      { name = "pair"; path = ./pair.nix; }
-      { name = "request"; path = ./request.nix; }
-      { name = "zip"; path = ./zip.nix; }
-      { name = "arrow"; path = ./arrow.nix; }
-      { name = "and"; path = ./and.nix; }
-      { name = "acc"; path = ./acc.nix; }
-      { 
-        name = "stream"; 
-        paths = [
-          ./stream-core.nix
-          ./stream-transform.nix
-          ./stream-limit.nix
-          ./stream-reduce.nix
-          ./stream-combine.nix
-        ]; 
-      }
-      { name = "conditions"; path = ./conditions.nix; }
-      { name = "result"; path = ./result.nix; }
-      { name = "rw"; path = ./rw.nix; }
-      { name = "choice"; path = ./choice.nix; }
-      { name = "bracket"; path = ./bracket.nix; }
-    ];
+  topLevelFiles = [
+    ./kernel.nix
+    ./basic.nix
+    ./functor.nix
+    ./monad.nix
+    ./provide.nix
+    ./sequence.nix
+  ];
+
+  namespacedFiles = [
+    {
+      name = "state";
+      path = ./state.nix;
+    }
+    {
+      name = "context";
+      path = ./context.nix;
+    }
+    {
+      name = "handlers";
+      path = ./handlers.nix;
+    }
+    {
+      name = "lens";
+      path = ./lens.nix;
+    }
+    {
+      name = "pair";
+      path = ./pair.nix;
+    }
+    {
+      name = "request";
+      path = ./request.nix;
+    }
+    {
+      name = "zip";
+      path = ./zip.nix;
+    }
+    {
+      name = "arrow";
+      path = ./arrow.nix;
+    }
+    {
+      name = "and";
+      path = ./and.nix;
+    }
+    {
+      name = "acc";
+      path = ./acc.nix;
+    }
+    {
+      name = "stream";
+      paths = [
+        ./stream-core.nix
+        ./stream-transform.nix
+        ./stream-limit.nix
+        ./stream-reduce.nix
+        ./stream-combine.nix
+      ];
+    }
+    {
+      name = "conditions";
+      path = ./conditions.nix;
+    }
+    {
+      name = "result";
+      path = ./result.nix;
+    }
+    {
+      name = "rw";
+      path = ./rw.nix;
+    }
+    {
+      name = "choice";
+      path = ./choice.nix;
+    }
+    {
+      name = "bracket";
+      path = ./bracket.nix;
+    }
+  ];
 
   systems = nixpkgs.lib.systems.flakeExposed;
 
@@ -58,11 +103,17 @@ let
     let
       pkgs = nixpkgs.legacyPackages.${system};
       api = import ./api.nix { lib = pkgs.lib; };
-      
+
       # Combined file list for documentation
-      allFiles = (map (f: { name = builtins.baseNameOf (toString f); path = f; }) topLevelFiles) ++ namespacedFiles;
-      
-      nfx = pkgs.lib.fix (self:
+      allFiles =
+        (map (f: {
+          name = builtins.baseNameOf (toString f);
+          path = f;
+        }) topLevelFiles)
+        ++ namespacedFiles;
+
+      nfx = pkgs.lib.fix (
+        self:
         let
           ctx = {
             lib = pkgs.lib;
@@ -70,30 +121,29 @@ let
             nfx = self;
             inherit api;
           };
-          
+
           # Merge top-level files (kernel, combinators)
-          topLevel = pkgs.lib.mergeAttrsList (
-            map (f: api.extractValue (import f ctx).value) topLevelFiles
-          );
-          
+          topLevel = pkgs.lib.mergeAttrsList (map (f: api.extractValue (import f ctx).value) topLevelFiles);
+
           # Wrap namespaced files
           namespaced = pkgs.lib.listToAttrs (
             map (file: {
               name = file.name;
-              value = 
-                if file ? paths
-                then pkgs.lib.mergeAttrsList (
-                  map (p: api.extractValue (import p ctx).value) file.paths
-                )
-                else api.extractValue (import file.path ctx).value;
+              value =
+                if file ? paths then
+                  pkgs.lib.mergeAttrsList (map (p: api.extractValue (import p ctx).value) file.paths)
+                else
+                  api.extractValue (import file.path ctx).value;
             }) namespacedFiles
           );
         in
-        topLevel // namespaced // {
+        topLevel
+        // namespaced
+        // {
           types = api.types;
         }
       );
-      
+
       # Now extract tests with fully working nfx
       # Use api.extractTests which knows how to traverse mk results
       libCtx = {
@@ -101,36 +151,58 @@ let
         config.nfx.lib = nfx;
         inherit nfx api;
       };
-      
+
       fileNames = [
-        { name = "kernel"; path = ./kernel.nix; }
-        { name = "basic"; path = ./basic.nix; }
-        { name = "functor"; path = ./functor.nix; }
-        { name = "monad"; path = ./monad.nix; }
-        { name = "provide"; path = ./provide.nix; }
-        { name = "sequence"; path = ./sequence.nix; }
-      ] ++ namespacedFiles;
-      
+        {
+          name = "kernel";
+          path = ./kernel.nix;
+        }
+        {
+          name = "basic";
+          path = ./basic.nix;
+        }
+        {
+          name = "functor";
+          path = ./functor.nix;
+        }
+        {
+          name = "monad";
+          path = ./monad.nix;
+        }
+        {
+          name = "provide";
+          path = ./provide.nix;
+        }
+        {
+          name = "sequence";
+          path = ./sequence.nix;
+        }
+      ]
+      ++ namespacedFiles;
+
       # Extract tests from all files and flatten to test suite
-      extractAllTests = pkgs.lib.foldl' (acc: file:
+      extractAllTests = pkgs.lib.foldl' (
+        acc: file:
         let
           # Handle both single path and multiple paths
           filesToTest = if file ? paths then file.paths else [ file.path ];
-          
+
           # Extract tests from each file
-          fileTests = pkgs.lib.foldl' (facc: p:
+          fileTests = pkgs.lib.foldl' (
+            facc: p:
             let
               mkResult = import p libCtx;
               tests = api.extractTests mkResult;
             in
             facc // tests
-          ) {} filesToTest;
+          ) { } filesToTest;
         in
-        acc // pkgs.lib.mapAttrs' (testName: test: {
+        acc
+        // pkgs.lib.mapAttrs' (testName: test: {
           name = "${file.name} ${testName}";
           value = { inherit (test) expr expected; };
         }) fileTests
-      ) {} fileNames;
+      ) { } fileNames;
     in
     extractAllTests;
 
@@ -146,7 +218,7 @@ in
       pkgs = nixpkgs.legacyPackages.${system};
       lib = pkgs.lib;
       api = import ./api.nix { inherit lib; };
-      
+
       # Reuse file lists
       topLevelFiles = [
         ./kernel.nix
@@ -157,73 +229,133 @@ in
         ./sequence.nix
       ];
       namespacedFiles = [
-        { name = "state"; path = ./state.nix; }
-        { name = "context"; path = ./context.nix; }
-        { name = "handlers"; path = ./handlers.nix; }
-        { name = "lens"; path = ./lens.nix; }
-        { name = "pair"; path = ./pair.nix; }
-        { name = "request"; path = ./request.nix; }
-        { name = "zip"; path = ./zip.nix; }
-        { name = "arrow"; path = ./arrow.nix; }
-        { name = "and"; path = ./and.nix; }
-        { name = "acc"; path = ./acc.nix; }
-        { 
-          name = "stream"; 
+        {
+          name = "state";
+          path = ./state.nix;
+        }
+        {
+          name = "context";
+          path = ./context.nix;
+        }
+        {
+          name = "handlers";
+          path = ./handlers.nix;
+        }
+        {
+          name = "lens";
+          path = ./lens.nix;
+        }
+        {
+          name = "pair";
+          path = ./pair.nix;
+        }
+        {
+          name = "request";
+          path = ./request.nix;
+        }
+        {
+          name = "zip";
+          path = ./zip.nix;
+        }
+        {
+          name = "arrow";
+          path = ./arrow.nix;
+        }
+        {
+          name = "and";
+          path = ./and.nix;
+        }
+        {
+          name = "acc";
+          path = ./acc.nix;
+        }
+        {
+          name = "stream";
           paths = [
             ./stream-core.nix
             ./stream-transform.nix
             ./stream-limit.nix
             ./stream-reduce.nix
             ./stream-combine.nix
-          ]; 
+          ];
         }
-        { name = "conditions"; path = ./conditions.nix; }
-        { name = "result"; path = ./result.nix; }
-        { name = "rw"; path = ./rw.nix; }
-        { name = "choice"; path = ./choice.nix; }
-        { name = "bracket"; path = ./bracket.nix; }
+        {
+          name = "conditions";
+          path = ./conditions.nix;
+        }
+        {
+          name = "result";
+          path = ./result.nix;
+        }
+        {
+          name = "rw";
+          path = ./rw.nix;
+        }
+        {
+          name = "choice";
+          path = ./choice.nix;
+        }
+        {
+          name = "bracket";
+          path = ./bracket.nix;
+        }
       ];
-      
+
       # Build full nfx for doc extraction
-      nfx = lib.fix (self:
+      nfx = lib.fix (
+        self:
         let
           ctx = {
             inherit lib api;
             config.nfx.lib = self;
             nfx = self;
           };
-          topLevel = lib.mergeAttrsList (
-            map (f: api.extractValue (import f ctx).value) topLevelFiles
-          );
+          topLevel = lib.mergeAttrsList (map (f: api.extractValue (import f ctx).value) topLevelFiles);
           namespaced = lib.listToAttrs (
             map (file: {
               name = file.name;
-              value = 
-                if file ? paths
-                then lib.mergeAttrsList (
-                  map (p: api.extractValue (import p ctx).value) file.paths
-                )
-                else api.extractValue (import file.path ctx).value;
+              value =
+                if file ? paths then
+                  lib.mergeAttrsList (map (p: api.extractValue (import p ctx).value) file.paths)
+                else
+                  api.extractValue (import file.path ctx).value;
             }) namespacedFiles
           );
         in
-        topLevel // namespaced // {
+        topLevel
+        // namespaced
+        // {
           types = api.types;
         }
       );
-      
-      allFiles = (map (f: { name = builtins.baseNameOf (toString f); path = f; }) topLevelFiles) ++ namespacedFiles;
+
+      allFiles =
+        (map (f: {
+          name = builtins.baseNameOf (toString f);
+          path = f;
+        }) topLevelFiles)
+        ++ namespacedFiles;
     in
     {
       docs = import ./doc-generator.nix {
-        inherit pkgs lib nfx api;
+        inherit
+          pkgs
+          lib
+          nfx
+          api
+          ;
         fileList = allFiles;
       };
-      
+
       mdbook = import ./mdbook.nix {
         inherit pkgs;
         docs = import ./doc-generator.nix {
-          inherit pkgs lib nfx api;
+          inherit
+            pkgs
+            lib
+            nfx
+            api
+            ;
           fileList = allFiles;
         };
       };
@@ -236,42 +368,52 @@ in
       pkgs = nixpkgs.legacyPackages.${system};
       lib = pkgs.lib;
       api = import ./api.nix { inherit lib; };
-      
+
       # Build full nfx for doc extraction
-      nfx = lib.fix (self:
+      nfx = lib.fix (
+        self:
         let
           ctx = {
             inherit lib api;
             config.nfx.lib = self;
             nfx = self;
           };
-          topLevel = lib.mergeAttrsList (
-            map (f: api.extractValue (import f ctx).value) topLevelFiles
-          );
+          topLevel = lib.mergeAttrsList (map (f: api.extractValue (import f ctx).value) topLevelFiles);
           namespaced = lib.listToAttrs (
             map (file: {
               name = file.name;
-              value = 
-                if file ? paths
-                then lib.mergeAttrsList (
-                  map (p: api.extractValue (import p ctx).value) file.paths
-                )
-                else api.extractValue (import file.path ctx).value;
+              value =
+                if file ? paths then
+                  lib.mergeAttrsList (map (p: api.extractValue (import p ctx).value) file.paths)
+                else
+                  api.extractValue (import file.path ctx).value;
             }) namespacedFiles
           );
         in
-        topLevel // namespaced // {
+        topLevel
+        // namespaced
+        // {
           types = api.types;
         }
       );
-      
-      allFiles = (map (f: { name = builtins.baseNameOf (toString f); path = f; }) topLevelFiles) ++ namespacedFiles;
-      
+
+      allFiles =
+        (map (f: {
+          name = builtins.baseNameOf (toString f);
+          path = f;
+        }) topLevelFiles)
+        ++ namespacedFiles;
+
       docs = import ./doc-generator.nix {
-        inherit pkgs lib nfx api;
+        inherit
+          pkgs
+          lib
+          nfx
+          api
+          ;
         fileList = allFiles;
       };
-      
+
       mdbook = import ./mdbook.nix {
         inherit pkgs docs;
       };

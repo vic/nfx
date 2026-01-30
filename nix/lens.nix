@@ -311,7 +311,8 @@ mk {
         - `zoomOut` - For effects
         - `mapM` - Transform with effects
       '';
-      value = l: inner: e:
+      value =
+        l: inner: e:
         nfx.mapM (v: nfx.lens.zoomOut l (inner v)) e;
     };
   };

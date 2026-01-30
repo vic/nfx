@@ -49,11 +49,7 @@ mk {
         - `then'` - Sequence ignoring first value
       '';
       type = fn fx;
-      value = steps:
-        builtins.foldl'
-          (acc: step: nfx.mapM step acc)
-          (nfx.pure null)
-          steps;
+      value = steps: builtins.foldl' (acc: step: nfx.mapM step acc) (nfx.pure null) steps;
       tests = {
         "do chains effects with binding" = {
           expr = nfx.runFx (
@@ -119,11 +115,8 @@ mk {
         - `then'` - Sequence two effects
       '';
       type = fn fx;
-      value = effects:
-        builtins.foldl'
-          (acc: e: nfx.then' e acc)
-          (builtins.head effects)
-          (builtins.tail effects);
+      value =
+        effects: builtins.foldl' (acc: e: nfx.then' e acc) (builtins.head effects) (builtins.tail effects);
       tests = {
         "do' sequences effects" = {
           expr = nfx.runFx (

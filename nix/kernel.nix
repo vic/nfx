@@ -198,7 +198,8 @@ mk {
         - `contraMap` - Simpler context transformation (built on adapt)
       '';
       type = fn (fn (fn fx));
-      value = e: cmap: fmap:
+      value =
+        e: cmap: fmap:
         nfx.pending (
           t:
           let

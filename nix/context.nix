@@ -69,7 +69,8 @@ mk {
         - `state.set` - Sets the entire state, not just an attribute
       '';
       type = fn (fn (fn any));
-      value = ctx: name: value:
+      value =
+        ctx: name: value:
         ctx // { ${name} = value; };
       tests = {
         "put updates attribute" = {

@@ -34,7 +34,8 @@ mk {
         - `zipRight` - Keeps only second value
       '';
       type = fn (fn fx);
-      value = other: e:
+      value =
+        other: e:
         nfx.mapM (
           v1:
           nfx.map (v2: {

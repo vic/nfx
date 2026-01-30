@@ -5,7 +5,7 @@ let
     inherit nfx api;
   };
   api = import ./api.nix ctx;
-  
+
   topLevelFiles = [
     ./kernel.nix
     ./basic.nix
@@ -14,33 +14,78 @@ let
     ./provide.nix
     ./sequence.nix
   ];
-  
+
   namespacedFiles = [
-    { name = "state"; path = ./state.nix; }
-    { name = "context"; path = ./context.nix; }
-    { name = "handlers"; path = ./handlers.nix; }
-    { name = "lens"; path = ./lens.nix; }
-    { name = "pair"; path = ./pair.nix; }
-    { name = "request"; path = ./request.nix; }
-    { name = "zip"; path = ./zip.nix; }
-    { name = "arrow"; path = ./arrow.nix; }
-    { name = "and"; path = ./and.nix; }
-    { name = "acc"; path = ./acc.nix; }
-    { 
-      name = "stream"; 
+    {
+      name = "state";
+      path = ./state.nix;
+    }
+    {
+      name = "context";
+      path = ./context.nix;
+    }
+    {
+      name = "handlers";
+      path = ./handlers.nix;
+    }
+    {
+      name = "lens";
+      path = ./lens.nix;
+    }
+    {
+      name = "pair";
+      path = ./pair.nix;
+    }
+    {
+      name = "request";
+      path = ./request.nix;
+    }
+    {
+      name = "zip";
+      path = ./zip.nix;
+    }
+    {
+      name = "arrow";
+      path = ./arrow.nix;
+    }
+    {
+      name = "and";
+      path = ./and.nix;
+    }
+    {
+      name = "acc";
+      path = ./acc.nix;
+    }
+    {
+      name = "stream";
       paths = [
         ./stream-core.nix
         ./stream-transform.nix
         ./stream-limit.nix
         ./stream-reduce.nix
         ./stream-combine.nix
-      ]; 
+      ];
     }
-    { name = "conditions"; path = ./conditions.nix; }
-    { name = "result"; path = ./result.nix; }
-    { name = "rw"; path = ./rw.nix; }
-    { name = "choice"; path = ./choice.nix; }
-    { name = "bracket"; path = ./bracket.nix; }
+    {
+      name = "conditions";
+      path = ./conditions.nix;
+    }
+    {
+      name = "result";
+      path = ./result.nix;
+    }
+    {
+      name = "rw";
+      path = ./rw.nix;
+    }
+    {
+      name = "choice";
+      path = ./choice.nix;
+    }
+    {
+      name = "bracket";
+      path = ./bracket.nix;
+    }
   ];
 in
 {
@@ -51,22 +96,21 @@ in
 
   config.nfx.lib =
     let
-      topLevel = lib.mergeAttrsList (
-        map (f: api.extractValue (import f ctx).value) topLevelFiles
-      );
+      topLevel = lib.mergeAttrsList (map (f: api.extractValue (import f ctx).value) topLevelFiles);
       namespaced = lib.listToAttrs (
         map (file: {
           name = file.name;
-          value = 
-            if file ? paths
-            then lib.mergeAttrsList (
-              map (p: api.extractValue (import p ctx).value) file.paths
-            )
-            else api.extractValue (import file.path ctx).value;
+          value =
+            if file ? paths then
+              lib.mergeAttrsList (map (p: api.extractValue (import p ctx).value) file.paths)
+            else
+              api.extractValue (import file.path ctx).value;
         }) namespacedFiles
       );
     in
-    topLevel // namespaced // {
+    topLevel
+    // namespaced
+    // {
       inherit (api) types;
     };
 }

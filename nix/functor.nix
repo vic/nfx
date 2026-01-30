@@ -35,7 +35,8 @@ mk {
         - `contraMap` - For transforming context instead of value
       '';
       type = fn (fn fx);
-      value = f: e:
+      value =
+        f: e:
         nfx.adapt e (s: s) (
           _t: s: v:
           nfx.immediate s (f v)
@@ -91,7 +92,8 @@ mk {
         - `lens.zoomOut` - Lens-based focusing
       '';
       type = fn (fn (fn fx));
-      value = getter: setter: e:
+      value =
+        getter: setter: e:
         nfx.adapt e (outer: getter outer) (
           outer: inner: v:
           nfx.immediate (setter outer inner) v

@@ -34,7 +34,8 @@ mk {
         - `flatMap` - Creates paired context requirements
       '';
       type = fn fx;
-      value = e:
+      value =
+        e:
         nfx.contraMap (p: p.fst) (_: s: {
           fst = s;
           snd = { };
@@ -81,7 +82,8 @@ mk {
         - `andSwap` - Swaps pair components
       '';
       type = fn fx;
-      value = e:
+      value =
+        e:
         nfx.contraMap (s: {
           fst = s;
           snd = s;

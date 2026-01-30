@@ -33,7 +33,8 @@ let
     check = v: fxImmediate.check v || fxPending.check v;
   };
 
-  extractValue = v:
+  extractValue =
+    v:
     if builtins.isAttrs v && v ? value && v ? doc && v ? type then
       # This is an mk result, extract its value recursively
       extractValue v.value
@@ -44,15 +45,16 @@ let
       # Base case: return as-is
       v;
 
-  extractTests = v:
+  extractTests =
+    v:
     if builtins.isAttrs v && v ? tests then
       v.tests
     else if builtins.isAttrs v && v ? value then
       extractTests v.value
     else if builtins.isAttrs v then
-      lib.foldl' (acc: child: acc // extractTests child) {} (builtins.attrValues v)
+      lib.foldl' (acc: child: acc // extractTests child) { } (builtins.attrValues v)
     else
-      {};
+      { };
 in
 {
   types = {
@@ -67,8 +69,19 @@ in
 
   inherit extractValue extractTests;
 
-  mk = { doc, type ? any, value, tests ? {} }:
+  mk =
     {
-      inherit doc type value tests;
+      doc,
+      type ? any,
+      value,
+      tests ? { },
+    }:
+    {
+      inherit
+        doc
+        type
+        value
+        tests
+        ;
     };
 }

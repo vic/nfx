@@ -30,7 +30,9 @@ mk {
       tests = {
         "done.value terminates" = {
           expr = nfx.runFx done.value;
-          expected = { more = false; };
+          expected = {
+            more = false;
+          };
         };
       };
     };
@@ -61,7 +63,12 @@ mk {
         - `fromList` - Build from list
       '';
       type = fn (fn fx);
-      value = value: next: nfx.pure { more = true; inherit value next; };
+      value =
+        value: next:
+        nfx.pure {
+          more = true;
+          inherit value next;
+        };
       tests = {
         "more.value continues" = {
           expr = nfx.runFx (more.value 42 done.value);
@@ -98,18 +105,34 @@ mk {
         - `singleton` - Single element stream
       '';
       type = fn fx;
-      value = list:
-        if list == [ ]
-        then done.value
-        else more.value (builtins.head list) (fromList.value (builtins.tail list));
+      value =
+        list:
+        if list == [ ] then
+          done.value
+        else
+          more.value (builtins.head list) (fromList.value (builtins.tail list));
       tests = {
         "fromList.value converts list" = {
-          expr = nfx.runFx (nfx.stream.toList (fromList.value [ 1 2 3 ]));
-          expected = [ 1 2 3 ];
+          expr = nfx.runFx (
+            nfx.stream.toList (
+              fromList.value [
+                1
+                2
+                3
+              ]
+            )
+          );
+          expected = [
+            1
+            2
+            3
+          ];
         };
         "fromList.value empty" = {
           expr = nfx.runFx (fromList.value [ ]);
-          expected = { more = false; };
+          expected = {
+            more = false;
+          };
         };
       };
     };
@@ -169,20 +192,23 @@ mk {
         - `map` - Transform elements
       '';
       type = fn (fn fx);
-      value = n: effect:
-        if n <= 0
-        then done.value
-        else nfx.flatMap (v:
-          more.value v (repeat.value (n - 1) effect)
-        ) effect;
+      value =
+        n: effect:
+        if n <= 0 then done.value else nfx.flatMap (v: more.value v (repeat.value (n - 1) effect)) effect;
       tests = {
         "repeat.value generates n elements" = {
           expr = nfx.runFx (nfx.stream.toList (repeat.value 3 (nfx.pure 42)));
-          expected = [ 42 42 42 ];
+          expected = [
+            42
+            42
+            42
+          ];
         };
         "repeat.value zero is empty" = {
           expr = nfx.runFx (repeat.value 0 (nfx.pure 1));
-          expected = { more = false; };
+          expected = {
+            more = false;
+          };
         };
       };
     };

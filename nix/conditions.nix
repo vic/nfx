@@ -96,56 +96,63 @@ mk {
         - `error` - Signal non-resumable error
       '';
       type = fn fx;
-      value = condition:
-        nfx.pending (ctx:
+      value =
+        condition:
+        nfx.pending (
+          ctx:
           let
-            handlers = ctx.handlers or [];
-            restarts = ctx.restarts or [];
-            
+            handlers = ctx.handlers or [ ];
+            restarts = ctx.restarts or [ ];
+
             # Find matching handler
-            matchingHandler = builtins.foldl'
-              (found: handler:
-                if found != null then found
-                else if handler.pattern == condition.type || handler.pattern == "*"
-                     then handler
-                     else null)
-              null
-              handlers;
-            
+            matchingHandler = builtins.foldl' (
+              found: handler:
+              if found != null then
+                found
+              else if handler.pattern == condition.type || handler.pattern == "*" then
+                handler
+              else
+                null
+            ) null handlers;
+
             # Context with condition info for handler
             handlerCtx = ctx // {
               _condition = condition;
               _restarts = restarts;
             };
           in
-            if matchingHandler != null
-            then
-              # Invoke handler with condition
-              let handlerResult = matchingHandler.action condition;
-              in nfx.contraMap (_: handlerCtx) (_: _: ctx) handlerResult
-            else
-              # No handler found - return unit (resumable)
-              nfx.immediate ctx {}
+          if matchingHandler != null then
+            # Invoke handler with condition
+            let
+              handlerResult = matchingHandler.action condition;
+            in
+            nfx.contraMap (_: handlerCtx) (_: _: ctx) handlerResult
+          else
+            # No handler found - return unit (resumable)
+            nfx.immediate ctx { }
         );
       tests = {
         "signal without handler returns unit" = {
-          expr = nfx.runFx (
-            nfx.provide { } (
-              nfx.signal { type = "test"; }
-            )
-          );
+          expr = nfx.runFx (nfx.provide { } (nfx.signal { type = "test"; }));
           expected = { };
         };
         "signal with handler invokes handler" = {
           expr = nfx.runFx (
-            nfx.provide {
-              handlers = [{
-                pattern = "test";
-                action = cond: nfx.pure cond.value;
-              }];
-            } (
-              nfx.signal { type = "test"; value = 42; }
-            )
+            nfx.provide
+              {
+                handlers = [
+                  {
+                    pattern = "test";
+                    action = cond: nfx.pure cond.value;
+                  }
+                ];
+              }
+              (
+                nfx.signal {
+                  type = "test";
+                  value = 42;
+                }
+              )
           );
           expected = { };
         };
@@ -191,26 +198,41 @@ mk {
         - `handleBind` - Multiple handlers
       '';
       type = fn (fn (fn fx));
-      value = conditionType: handler: effect:
+      value =
+        conditionType: handler: effect:
         nfx.contraMap
-          (ctx: ctx // {
-            handlers = [{
-              pattern = conditionType;
-              action = handler;
-            }] ++ (ctx.handlers or []);
-          })
-          (ctx: inner: 
+          (
+            ctx:
+            ctx
+            // {
+              handlers = [
+                {
+                  pattern = conditionType;
+                  action = handler;
+                }
+              ]
+              ++ (ctx.handlers or [ ]);
+            }
+          )
+          (
+            ctx: inner:
             # Remove handler from context after effect completes
-            ctx // {
-              handlers = ctx.handlers or [];
-            })
+            ctx
+            // {
+              handlers = ctx.handlers or [ ];
+            }
+          )
           effect;
       tests = {
         "handle catches matching condition" = {
           expr = nfx.runFx (
             nfx.handle "error" (cond: nfx.pure cond.value) (
-              nfx.then' (nfx.pure 99)
-                (nfx.signal { type = "error"; value = 42; })
+              nfx.then' (nfx.pure 99) (
+                nfx.signal {
+                  type = "error";
+                  value = 42;
+                }
+              )
             )
           );
           expected = 99;
@@ -218,8 +240,12 @@ mk {
         "handle ignores non-matching" = {
           expr = nfx.runFx (
             nfx.handle "other" (cond: nfx.pure 1) (
-              nfx.then' (nfx.pure 99)
-                (nfx.signal { type = "error"; value = 42; })
+              nfx.then' (nfx.pure 99) (
+                nfx.signal {
+                  type = "error";
+                  value = 42;
+                }
+              )
             )
           );
           expected = 99;
@@ -229,8 +255,7 @@ mk {
             nfx.handle "error" (_: nfx.pure 1) (
               nfx.handle "error" (_: nfx.pure 2) (
 
-                nfx.then' (nfx.pure 3)
-                  (nfx.signal { type = "error"; })
+                nfx.then' (nfx.pure 3) (nfx.signal { type = "error"; })
               )
             )
           );
@@ -276,36 +301,39 @@ mk {
         - `signal` - Signals that trigger restarts
       '';
       type = fn (fn (fn fx));
-      value = name: action: effect:
+      value =
+        name: action: effect:
         nfx.contraMap
-          (ctx: ctx // {
-            restarts = [{
-              name = name;
-              action = action;
-            }] ++ (ctx.restarts or []);
-          })
-          (ctx: inner:
+          (
+            ctx:
+            ctx
+            // {
+              restarts = [
+                {
+                  name = name;
+                  action = action;
+                }
+              ]
+              ++ (ctx.restarts or [ ]);
+            }
+          )
+          (
+            ctx: inner:
             # Remove restart from context after effect completes
-            ctx // {
-              restarts = ctx.restarts or [];
-            })
+            ctx
+            // {
+              restarts = ctx.restarts or [ ];
+            }
+          )
           effect;
       tests = {
         "withRestart defines restart" = {
-          expr = nfx.runFx (
-            nfx.withRestart "use-default" (v: nfx.pure v) (
-              nfx.pure 42
-            )
-          );
+          expr = nfx.runFx (nfx.withRestart "use-default" (v: nfx.pure v) (nfx.pure 42));
           expected = 42;
         };
         "nested restarts available" = {
           expr = nfx.runFx (
-            nfx.withRestart "outer" (_: nfx.pure 1) (
-              nfx.withRestart "inner" (_: nfx.pure 2) (
-                nfx.pure 3
-              )
-            )
+            nfx.withRestart "outer" (_: nfx.pure 1) (nfx.withRestart "inner" (_: nfx.pure 2) (nfx.pure 3))
           );
           expected = 3;
         };
@@ -348,36 +376,40 @@ mk {
         - `findRestart` - Check restart availability
       '';
       type = fn (fn fx);
-      value = name: value:
-        nfx.pending (ctx:
+      value =
+        name: value:
+        nfx.pending (
+          ctx:
           let
-            restarts = ctx._restarts or ctx.restarts or [];
-            
+            restarts = ctx._restarts or ctx.restarts or [ ];
+
             # Find restart by name
-            matchingRestart = builtins.foldl'
-              (found: restart:
-                if found != null then found
-                else if restart.name == name then restart
-                else null)
-              null
-              restarts;
+            matchingRestart = builtins.foldl' (
+              found: restart:
+              if found != null then
+                found
+              else if restart.name == name then
+                restart
+              else
+                null
+            ) null restarts;
           in
-            if matchingRestart != null
-            then
-              # Invoke restart action
-              let restartResult = matchingRestart.action value;
-              in nfx.contraMap (_: ctx) (_: _: ctx) restartResult
-            else
-              # Restart not found - signal error
-              nfx.immediate ctx (throw "Restart not found: ${name}")
+          if matchingRestart != null then
+            # Invoke restart action
+            let
+              restartResult = matchingRestart.action value;
+            in
+            nfx.contraMap (_: ctx) (_: _: ctx) restartResult
+          else
+            # Restart not found - signal error
+            nfx.immediate ctx (throw "Restart not found: ${name}")
         );
       tests = {
         "invokeRestart calls action" = {
           expr = nfx.runFx (
             nfx.withRestart "test" (v: nfx.pure (v * 2)) (
               nfx.handle "trigger" (_: nfx.invokeRestart "test" 21) (
-                nfx.then' (nfx.pure 99)
-                  (nfx.signal { type = "trigger"; })
+                nfx.then' (nfx.pure 99) (nfx.signal { type = "trigger"; })
               )
             )
           );
@@ -446,17 +478,20 @@ mk {
         - `warn` - Non-error condition
       '';
       type = fn (fn fx);
-      value = message: details:
-        nfx.signal (details // {
-          type = "error";
-          message = message;
-        });
+      value =
+        message: details:
+        nfx.signal (
+          details
+          // {
+            type = "error";
+            message = message;
+          }
+        );
       tests = {
         "error signals error condition" = {
           expr = nfx.runFx (
             nfx.handle "error" (cond: nfx.pure cond.message) (
-              nfx.then' (nfx.pure "unreachable")
-                (nfx.error "test error" { code = 42; })
+              nfx.then' (nfx.pure "unreachable") (nfx.error "test error" { code = 42; })
             )
           );
           expected = "unreachable";
@@ -496,26 +531,27 @@ mk {
         - `withRestart` - Manual restart definition
       '';
       type = fn (fn (fn (fn fx)));
-      value = continueMessage: defaultValue: errorMessage: details:
+      value =
+        continueMessage: defaultValue: errorMessage: details:
         nfx.withRestart "continue" (_: nfx.pure defaultValue) (
-          nfx.then' (nfx.pure defaultValue)
-            (nfx.signal (details // {
-              type = "error";
-              message = errorMessage;
-              continuable = true;
-              continueMessage = continueMessage;
-            }))
+          nfx.then' (nfx.pure defaultValue) (
+            nfx.signal (
+              details
+              // {
+                type = "error";
+                message = errorMessage;
+                continuable = true;
+                continueMessage = continueMessage;
+              }
+            )
+          )
         );
       tests = {
         "cerror provides continue restart" = {
           expr = nfx.runFx (
-            nfx.handle "error" (cond:
-              if cond.continuable or false
-              then nfx.invokeRestart "continue" {}
-              else nfx.pure "abort"
-            ) (
-              nfx.cerror "Use default" 42 "Failed" { }
-            )
+            nfx.handle "error" (
+              cond: if cond.continuable or false then nfx.invokeRestart "continue" { } else nfx.pure "abort"
+            ) (nfx.cerror "Use default" 42 "Failed" { })
           );
           expected = 42;
         };
@@ -552,17 +588,18 @@ mk {
         - `error` - Error conditions
       '';
       type = fn (fn fx);
-      value = message: details:
-        nfx.signal (details // {
-          type = "warning";
-          message = message;
-        });
+      value =
+        message: details:
+        nfx.signal (
+          details
+          // {
+            type = "warning";
+            message = message;
+          }
+        );
       tests = {
         "warn is resumable" = {
-          expr = nfx.runFx (
-            nfx.then' (nfx.pure 42)
-              (nfx.warn "test warning" { })
-          );
+          expr = nfx.runFx (nfx.then' (nfx.pure 42) (nfx.warn "test warning" { }));
           expected = 42;
         };
       };
@@ -595,21 +632,22 @@ mk {
         - `signal` - Condition signaling
       '';
       type = fn (fn fx);
-      value = bindings: effect:
-        builtins.foldl'
-          (eff: binding: nfx.handle binding.pattern binding.action eff)
-          effect
-          bindings;
+      value =
+        bindings: effect:
+        builtins.foldl' (eff: binding: nfx.handle binding.pattern binding.action eff) effect bindings;
       tests = {
         "handleBind establishes multiple handlers" = {
           expr = nfx.runFx (
             nfx.handleBind [
-              { pattern = "error"; action = _: nfx.pure 1; }
-              { pattern = "warning"; action = _: nfx.pure 2; }
-            ] (
-              nfx.then' (nfx.pure 42)
-                (nfx.signal { type = "warning"; })
-            )
+              {
+                pattern = "error";
+                action = _: nfx.pure 1;
+              }
+              {
+                pattern = "warning";
+                action = _: nfx.pure 2;
+              }
+            ] (nfx.then' (nfx.pure 42) (nfx.signal { type = "warning"; }))
           );
           expected = 42;
         };
@@ -643,26 +681,23 @@ mk {
         - `listRestarts` - List all available
       '';
       type = fn fx;
-      value = name:
-        nfx.func (ctx:
+      value =
+        name:
+        nfx.func (
+          ctx:
           let
-            restarts = ctx._restarts or ctx.restarts or [];
+            restarts = ctx._restarts or ctx.restarts or [ ];
             found = builtins.any (r: r.name == name) restarts;
-          in found
+          in
+          found
         );
       tests = {
         "findRestart detects available restart" = {
-          expr = nfx.runFx (
-            nfx.withRestart "test" (nfx.pure) (
-              nfx.findRestart "test"
-            )
-          );
+          expr = nfx.runFx (nfx.withRestart "test" (nfx.pure) (nfx.findRestart "test"));
           expected = true;
         };
         "findRestart returns false when absent" = {
-          expr = nfx.runFx (
-            nfx.findRestart "missing"
-          );
+          expr = nfx.runFx (nfx.findRestart "missing");
           expected = false;
         };
       };
@@ -694,16 +729,10 @@ mk {
         - `cerror` - Continuable errors
       '';
       type = fn (fn fx);
-      value = default: effect:
-        nfx.handle "error" (_: nfx.pure default) effect;
+      value = default: effect: nfx.handle "error" (_: nfx.pure default) effect;
       tests = {
         "ignoreErrors returns default on error" = {
-          expr = nfx.runFx (
-            nfx.ignoreErrors 99 (
-              nfx.then' (nfx.pure 42)
-                (nfx.error "test" { })
-            )
-          );
+          expr = nfx.runFx (nfx.ignoreErrors 99 (nfx.then' (nfx.pure 42) (nfx.error "test" { })));
           expected = 99;
         };
       };

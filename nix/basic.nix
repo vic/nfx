@@ -1,7 +1,12 @@
 { nfx, api, ... }:
 let
   inherit (api) mk;
-  inherit (api.types) fn any fx fxImmediate;
+  inherit (api.types)
+    fn
+    any
+    fx
+    fxImmediate
+    ;
 in
 mk {
   doc = "Basic effect constructors for lifting values";

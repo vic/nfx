@@ -99,7 +99,8 @@ mk {
         - `request.request` - Request abilities (returns effects)
       '';
       type = fn (fn api.types.fx);
-      value = name: i:
+      value =
+        name: i:
         nfx.pending (
           ctx:
           let
@@ -143,7 +144,8 @@ mk {
         - `contraMap` - Transform effect inputs
       '';
       type = fn (fn (fn any));
-      value = cmap: fmap: f: i:
+      value =
+        cmap: fmap: f: i:
         fmap (f (cmap i));
       tests = {
         "arrow.adapt transforms arrow" = {

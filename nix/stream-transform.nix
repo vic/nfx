@@ -31,18 +31,29 @@ mk {
         - `flatMap` - Transform and flatten
       '';
       type = fn (fn fx);
-      value = f: stream:
-        nfx.flatMap (step:
-          if step.more
-          then nfx.stream.more (f step.value) (map.value f step.next)
-          else nfx.stream.done
+      value =
+        f: stream:
+        nfx.flatMap (
+          step: if step.more then nfx.stream.more (f step.value) (map.value f step.next) else nfx.stream.done
         ) stream;
       tests = {
         "map.value transforms values" = {
           expr = nfx.runFx (
-            nfx.stream.toList (map.value (x: x * 2) (nfx.stream.fromList [ 1 2 3 ]))
+            nfx.stream.toList (
+              map.value (x: x * 2) (
+                nfx.stream.fromList [
+                  1
+                  2
+                  3
+                ]
+              )
+            )
           );
-          expected = [ 2 4 6 ];
+          expected = [
+            2
+            4
+            6
+          ];
         };
       };
     };
@@ -72,22 +83,35 @@ mk {
         - `map` - Transform all elements
       '';
       type = fn (fn fx);
-      value = pred: stream:
-        nfx.flatMap (step:
-          if !step.more
-          then nfx.stream.done
-          else if pred step.value
-          then nfx.stream.more step.value (filter.value pred step.next)
-          else filter.value pred step.next
+      value =
+        pred: stream:
+        nfx.flatMap (
+          step:
+          if !step.more then
+            nfx.stream.done
+          else if pred step.value then
+            nfx.stream.more step.value (filter.value pred step.next)
+          else
+            filter.value pred step.next
         ) stream;
       tests = {
         "filter.value selects matching" = {
           expr = nfx.runFx (
             nfx.stream.toList (
-              filter.value (x: x > 2) (nfx.stream.fromList [ 1 2 3 4 ])
+              filter.value (x: x > 2) (
+                nfx.stream.fromList [
+                  1
+                  2
+                  3
+                  4
+                ]
+              )
             )
           );
-          expected = [ 3 4 ];
+          expected = [
+            3
+            4
+          ];
         };
       };
     };

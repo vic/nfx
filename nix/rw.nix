@@ -38,7 +38,7 @@ mk {
     # ============================================================================
     # READER EFFECT
     # ============================================================================
-    
+
     ask = mk {
       doc = ''
         Reads the entire Reader environment.
@@ -66,7 +66,9 @@ mk {
       tests = {
         "ask reads environment" = {
           expr = nfx.runFx (nfx.provide { x = 42; } nfx.ask);
-          expected = { x = 42; };
+          expected = {
+            x = 42;
+          };
         };
       };
     };
@@ -100,7 +102,12 @@ mk {
       value = f: nfx.map f nfx.ask;
       tests = {
         "asks projects environment" = {
-          expr = nfx.runFx (nfx.provide { x = 10; y = 20; } (nfx.asks (env: env.x * 2)));
+          expr = nfx.runFx (
+            nfx.provide {
+              x = 10;
+              y = 20;
+            } (nfx.asks (env: env.x * 2))
+          );
           expected = 20;
         };
       };
@@ -135,18 +142,18 @@ mk {
         - `runReader` - Provide initial environment
       '';
       type = fn (fn fx);
-      value = f: e:
-        nfx.mapM (ctx: nfx.provide (f ctx) e) nfx.state.get;
+      value = f: e: nfx.mapM (ctx: nfx.provide (f ctx) e) nfx.state.get;
       tests = {
         "local modifies environment temporarily" = {
           expr = nfx.runFx (
             nfx.provide { x = 10; } (
-              nfx.zip 
-                (nfx.local (env: env // { x = 20; }) (nfx.asks (env: env.x)))
-                (nfx.asks (env: env.x))
+              nfx.zip (nfx.local (env: env // { x = 20; }) (nfx.asks (env: env.x))) (nfx.asks (env: env.x))
             )
           );
-          expected = { fst = 10; snd = 20; };
+          expected = {
+            fst = 10;
+            snd = 20;
+          };
         };
       };
     };
@@ -221,14 +228,11 @@ mk {
       value = value: nfx.acc.accumulate nfx.acc.list value;
       tests = {
         "tell accumulates output" = {
-          expr = nfx.runFx (
-            nfx.provide 0 (
-              nfx.acc.collect [ ] (
-                nfx.tell "first"
-              )
-            )
-          );
-          expected = { acc = [ "first" ]; value = { }; };
+          expr = nfx.runFx (nfx.provide 0 (nfx.acc.collect [ ] (nfx.tell "first")));
+          expected = {
+            acc = [ "first" ];
+            value = { };
+          };
         };
       };
     };
@@ -264,20 +268,15 @@ mk {
         - `censor` - Transform output
       '';
       type = fn fx;
-      value = e:
+      value =
+        e:
         nfx.map (result: {
           value = result.value;
           output = result.acc;
         }) (nfx.acc.collect [ ] e);
       tests = {
         "listen captures output" = {
-          expr = nfx.runFx (
-            nfx.provide 0 (
-              nfx.listen (
-                nfx.then' (nfx.pure 42) (nfx.tell "msg")
-              )
-            )
-          );
+          expr = nfx.runFx (nfx.provide 0 (nfx.listen (nfx.then' (nfx.pure 42) (nfx.tell "msg"))));
           expected = {
             value = 42;
             output = [ "msg" ];
@@ -315,7 +314,8 @@ mk {
         - `listen` - Capture output
       '';
       type = fn (fn fx);
-      value = f: e:
+      value =
+        f: e:
         nfx.map (result: {
           value = result.value;
           output = f result.output;
@@ -324,14 +324,15 @@ mk {
         "censor transforms output" = {
           expr = nfx.runFx (
             nfx.provide 0 (
-              nfx.censor (output: output ++ [ "end" ]) (
-                nfx.then' (nfx.pure 42) (nfx.tell "start")
-              )
+              nfx.censor (output: output ++ [ "end" ]) (nfx.then' (nfx.pure 42) (nfx.tell "start"))
             )
           );
           expected = {
             value = 42;
-            output = [ "start" "end" ];
+            output = [
+              "start"
+              "end"
+            ];
           };
         };
       };
@@ -373,17 +374,14 @@ mk {
       tests = {
         "runWriter extracts value and output" = {
           expr = nfx.runFx (
-            nfx.provide 0 (
-              nfx.runWriter (
-                nfx.then' (nfx.pure 99) (
-                  nfx.then' (nfx.tell "b") (nfx.tell "a")
-                )
-              )
-            )
+            nfx.provide 0 (nfx.runWriter (nfx.then' (nfx.pure 99) (nfx.then' (nfx.tell "b") (nfx.tell "a"))))
           );
           expected = {
             value = 99;
-            output = [ "a" "b" ];
+            output = [
+              "a"
+              "b"
+            ];
           };
         };
       };
@@ -421,20 +419,18 @@ mk {
         - `tell` - Write to output
       '';
       type = fn fx;
-      value = e:
-        nfx.map (result: result.output) (nfx.listen e);
+      value = e: nfx.map (result: result.output) (nfx.listen e);
       tests = {
         "execWriter extracts only output" = {
           expr = nfx.runFx (
             nfx.provide 0 (
-              nfx.execWriter (
-                nfx.then' (nfx.pure "ignored") (
-                  nfx.then' (nfx.tell "y") (nfx.tell "x")
-                )
-              )
+              nfx.execWriter (nfx.then' (nfx.pure "ignored") (nfx.then' (nfx.tell "y") (nfx.tell "x")))
             )
           );
-          expected = [ "x" "y" ];
+          expected = [
+            "x"
+            "y"
+          ];
         };
       };
     };
@@ -468,8 +464,10 @@ mk {
         - `listen` - Capture output
       '';
       type = fn fx;
-      value = e:
-        nfx.mapM (result:
+      value =
+        e:
+        nfx.mapM (
+          result:
           nfx.pure {
             value = result.value.value;
             output = result.value.transform result.output;
@@ -489,7 +487,10 @@ mk {
           );
           expected = {
             value = 42;
-            output = [ "msg" "extra" ];
+            output = [
+              "msg"
+              "extra"
+            ];
           };
         };
       };
@@ -524,7 +525,8 @@ mk {
         - `censor` - Transform output before returning
       '';
       type = fn (fn fx);
-      value = f: e:
+      value =
+        f: e:
         nfx.map (result: {
           value = result.value;
           output = f result.output;
@@ -533,11 +535,7 @@ mk {
         "listens projects output" = {
           expr = nfx.runFx (
             nfx.provide 0 (
-              nfx.listens (builtins.length) (
-                nfx.then' (nfx.pure 42) (
-                  nfx.then' (nfx.tell "b") (nfx.tell "a")
-                )
-              )
+              nfx.listens (builtins.length) (nfx.then' (nfx.pure 42) (nfx.then' (nfx.tell "b") (nfx.tell "a")))
             )
           );
           expected = {

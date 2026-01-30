@@ -12,11 +12,11 @@ mk {
     and exploring multiple solution paths fairly.
 
     ## Core Concepts
-    
+
     - **mzero**: Empty/failure (no solutions) = stream.done
     - **mplus**: Fair choice/OR = stream.interleave  
     - **mprod**: Conjunction/AND = stream.flatMap
-    
+
     Choice effects return streams of solutions. Use `observe` to extract
     the first solution, or `observeAll` to collect all solutions.
 
@@ -46,7 +46,7 @@ mk {
     ```
 
     ## Namespace Contents
-    
+
     - `mzero` - Failure/no solutions
     - `mplus` - Fair binary choice (try both)
     - `orElse` - Try first, fallback to second on failure
@@ -83,7 +83,7 @@ mk {
       tests = {
         "mzero produces no solutions" = {
           expr = nfx.runFx (nfx.stream.toList nfx.mzero);
-          expected = [];
+          expected = [ ];
         };
       };
     };
@@ -124,11 +124,24 @@ mk {
           expr = nfx.runFx (
             nfx.stream.toList (
               nfx.mplus
-                (nfx.stream.fromList [ 1 2 ])
-                (nfx.stream.fromList [ 10 20 ])
+                (nfx.stream.fromList [
+                  1
+                  2
+                ])
+                (
+                  nfx.stream.fromList [
+                    10
+                    20
+                  ]
+                )
             )
           );
-          expected = [ 1 10 2 20 ];
+          expected = [
+            1
+            10
+            2
+            20
+          ];
         };
       };
     };
@@ -161,29 +174,15 @@ mk {
         - `choice` - Multiple alternatives
       '';
       type = fn (fn fx);
-      value = e1: e2:
-        nfx.mapM (s1:
-          nfx.mapM (step:
-            if step.more
-            then nfx.stream.interleave s1 e2
-            else e2
-          ) s1
-        ) e1;
+      value =
+        e1: e2: nfx.mapM (s1: nfx.mapM (step: if step.more then nfx.stream.interleave s1 e2 else e2) s1) e1;
       tests = {
         "orElse tries second on empty first" = {
-          expr = nfx.runFx (
-            nfx.observe (
-              nfx.orElse nfx.mzero (nfx.pure 42)
-            )
-          );
+          expr = nfx.runFx (nfx.observe (nfx.orElse nfx.mzero (nfx.pure 42)));
           expected = 42;
         };
         "orElse uses first when non-empty" = {
-          expr = nfx.runFx (
-            nfx.observe (
-              nfx.orElse (nfx.pure 1) (nfx.pure 2)
-            )
-          );
+          expr = nfx.runFx (nfx.observe (nfx.orElse (nfx.pure 1) (nfx.pure 2)));
           expected = 1;
         };
       };
@@ -222,11 +221,7 @@ mk {
         - `mplus` - Fair binary combination
       '';
       type = fn fx;
-      value = alternatives:
-        builtins.foldl' 
-          (acc: e: nfx.mplus acc e)
-          nfx.mzero
-          alternatives;
+      value = alternatives: builtins.foldl' (acc: e: nfx.mplus acc e) nfx.mzero alternatives;
       tests = {
         "choice combines alternatives" = {
           expr = nfx.runFx (
@@ -238,13 +233,15 @@ mk {
               ]
             )
           );
-          expected = [ 1 2 3 ];
+          expected = [
+            1
+            2
+            3
+          ];
         };
         "choice of empty list is mzero" = {
-          expr = nfx.runFx (
-            nfx.stream.toList (nfx.choice [])
-          );
-          expected = [];
+          expr = nfx.runFx (nfx.stream.toList (nfx.choice [ ]));
+          expected = [ ];
         };
       };
     };
@@ -276,26 +273,15 @@ mk {
         - Logic programming: constraint satisfaction
       '';
       type = fn fx;
-      value = cond:
-        if cond 
-        then nfx.pure {}
-        else nfx.mzero;
+      value = cond: if cond then nfx.pure { } else nfx.mzero;
       tests = {
         "guard succeeds when true" = {
-          expr = nfx.runFx (
-            nfx.observe (
-              nfx.mapM (_: nfx.pure 42) (nfx.guard true)
-            )
-          );
+          expr = nfx.runFx (nfx.observe (nfx.mapM (_: nfx.pure 42) (nfx.guard true)));
           expected = 42;
         };
         "guard fails when false" = {
-          expr = nfx.runFx (
-            nfx.stream.toList (
-              nfx.mapM (_: nfx.pure 42) (nfx.guard false)
-            )
-          );
-          expected = [];
+          expr = nfx.runFx (nfx.stream.toList (nfx.mapM (_: nfx.pure 42) (nfx.guard false)));
+          expected = [ ];
         };
       };
     };
@@ -330,25 +316,22 @@ mk {
         - `once` - At most one solution
       '';
       type = fn fx;
-      value = e:
-        nfx.mapM (step:
-          if step.more
-          then nfx.pure step.value
-          else nfx.pure null
-        ) e;
+      value = e: nfx.mapM (step: if step.more then nfx.pure step.value else nfx.pure null) e;
       tests = {
         "observe extracts first solution" = {
           expr = nfx.runFx (
             nfx.observe (
-              nfx.stream.fromList [ 1 2 3 ]
+              nfx.stream.fromList [
+                1
+                2
+                3
+              ]
             )
           );
           expected = 1;
         };
         "observe returns null on empty" = {
-          expr = nfx.runFx (
-            nfx.observe nfx.mzero
-          );
+          expr = nfx.runFx (nfx.observe nfx.mzero);
           expected = null;
         };
       };
@@ -383,22 +366,27 @@ mk {
         - Logic programming: solution enumeration
       '';
       type = fn fx;
-      value = e:
-        nfx.stream.toList e;
+      value = e: nfx.stream.toList e;
       tests = {
         "observeAll collects solutions" = {
           expr = nfx.runFx (
             nfx.observeAll (
-              nfx.stream.fromList [ 1 2 3 ]
+              nfx.stream.fromList [
+                1
+                2
+                3
+              ]
             )
           );
-          expected = [ 1 2 3 ];
+          expected = [
+            1
+            2
+            3
+          ];
         };
         "observeAll returns empty on mzero" = {
-          expr = nfx.runFx (
-            nfx.observeAll nfx.mzero
-          );
-          expected = [];
+          expr = nfx.runFx (nfx.observeAll nfx.mzero);
+          expected = [ ];
         };
       };
     };
@@ -432,33 +420,16 @@ mk {
         - `once` - Take first solution
       '';
       type = fn (fn (fn fx));
-      value = cond: thenBranch: elseBranch:
-        nfx.mapM (step:
-          if step.more
-          then thenBranch step.value
-          else elseBranch
-        ) cond;
+      value =
+        cond: thenBranch: elseBranch:
+        nfx.mapM (step: if step.more then thenBranch step.value else elseBranch) cond;
       tests = {
         "ifte executes then on success" = {
-          expr = nfx.runFx (
-            nfx.observe (
-              nfx.ifte
-                (nfx.pure 42)
-                (v: nfx.pure (v * 2))
-                (nfx.pure 0)
-            )
-          );
+          expr = nfx.runFx (nfx.observe (nfx.ifte (nfx.pure 42) (v: nfx.pure (v * 2)) (nfx.pure 0)));
           expected = 84;
         };
         "ifte executes else on failure" = {
-          expr = nfx.runFx (
-            nfx.observe (
-              nfx.ifte
-                nfx.mzero
-                (v: nfx.pure v)
-                (nfx.pure 99)
-            )
-          );
+          expr = nfx.runFx (nfx.observe (nfx.ifte nfx.mzero (v: nfx.pure v) (nfx.pure 99)));
           expected = 99;
         };
       };
@@ -496,30 +467,25 @@ mk {
         - `ifte` - Conditional based on first solution
       '';
       type = fn fx;
-      value = e:
-        nfx.mapM (step:
-          if step.more
-          then nfx.stream.more step.value nfx.mzero
-          else nfx.mzero
-        ) e;
+      value = e: nfx.mapM (step: if step.more then nfx.stream.more step.value nfx.mzero else nfx.mzero) e;
       tests = {
         "once takes first solution" = {
           expr = nfx.runFx (
             nfx.stream.toList (
               nfx.once (
-                nfx.stream.fromList [ 1 2 3 ]
+                nfx.stream.fromList [
+                  1
+                  2
+                  3
+                ]
               )
             )
           );
           expected = [ 1 ];
         };
         "once on empty is empty" = {
-          expr = nfx.runFx (
-            nfx.stream.toList (
-              nfx.once nfx.mzero
-            )
-          );
-          expected = [];
+          expr = nfx.runFx (nfx.stream.toList (nfx.once nfx.mzero));
+          expected = [ ];
         };
       };
     };

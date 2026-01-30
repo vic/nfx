@@ -70,16 +70,18 @@ mk {
         - `error` - Non-resumable condition system error
       '';
       type = fn (fn fx);
-      value = errorType: details:
-        nfx.error errorType (details // { _isResult = true; });
+      value = errorType: details: nfx.error errorType (details // { _isResult = true; });
       tests = {
         "throw' signals error" = {
-          expr = nfx.runFx (
-            nfx.catch' (
-              nfx.throw' "TestError" { code = 42; }
-            )
-          );
-          expected = { success = false; error = { type = "TestError"; code = 42; _isResult = true; }; };
+          expr = nfx.runFx (nfx.catch' (nfx.throw' "TestError" { code = 42; }));
+          expected = {
+            success = false;
+            error = {
+              type = "TestError";
+              code = 42;
+              _isResult = true;
+            };
+          };
         };
       };
     };
@@ -120,39 +122,65 @@ mk {
         - `try` - Catch with default value
       '';
       type = fn fx;
-      value = effect:
-        nfx.then' (v: nfx.pure { success = true; value = v; })
-          (nfx.handle "error" (cond: 
-            nfx.pure { success = false; error = cond; }
-          ) effect);
+      value =
+        effect:
+        nfx.then'
+          (
+            v:
+            nfx.pure {
+              success = true;
+              value = v;
+            }
+          )
+          (
+            nfx.handle "error" (
+              cond:
+              nfx.pure {
+                success = false;
+                error = cond;
+              }
+            ) effect
+          );
       tests = {
         "catch' wraps success" = {
-          expr = nfx.runFx (
-            nfx.catch' (nfx.pure 42)
-          );
-          expected = { success = true; value = 42; };
+          expr = nfx.runFx (nfx.catch' (nfx.pure 42));
+          expected = {
+            success = true;
+            value = 42;
+          };
         };
         "catch' wraps error" = {
-          expr = nfx.runFx (
-            nfx.catch' (
-              nfx.throw' "Failed" { reason = "test"; }
-            )
-          );
-          expected = { success = false; error = { type = "Failed"; reason = "test"; _isResult = true; }; };
+          expr = nfx.runFx (nfx.catch' (nfx.throw' "Failed" { reason = "test"; }));
+          expected = {
+            success = false;
+            error = {
+              type = "Failed";
+              reason = "test";
+              _isResult = true;
+            };
+          };
         };
         "catch' allows nesting" = {
           expr = nfx.runFx (
             nfx.catch' (
-              nfx.then' (result:
-                if result.success
-                then nfx.pure result.value
-                else nfx.throw' "Propagated" { inner = result.error; }
-              ) (nfx.catch' (
-                nfx.throw' "Inner" { level = 1; }
-              ))
+              nfx.then' (
+                result:
+                if result.success then nfx.pure result.value else nfx.throw' "Propagated" { inner = result.error; }
+              ) (nfx.catch' (nfx.throw' "Inner" { level = 1; }))
             )
           );
-          expected = { success = false; error = { type = "Propagated"; inner = { type = "Inner"; level = 1; _isResult = true; }; _isResult = true; }; };
+          expected = {
+            success = false;
+            error = {
+              type = "Propagated";
+              inner = {
+                type = "Inner";
+                level = 1;
+                _isResult = true;
+              };
+              _isResult = true;
+            };
+          };
         };
       };
     };
@@ -186,25 +214,18 @@ mk {
         - `throw'` - Throw an error
       '';
       type = fn (fn fx);
-      value = default: effect:
-        nfx.then' (result:
-          if result.success
-          then nfx.pure result.value
-          else nfx.pure default
-        ) (nfx.catch' effect);
+      value =
+        default: effect:
+        nfx.then' (result: if result.success then nfx.pure result.value else nfx.pure default) (
+          nfx.catch' effect
+        );
       tests = {
         "try returns value on success" = {
-          expr = nfx.runFx (
-            nfx.try 0 (nfx.pure 42)
-          );
+          expr = nfx.runFx (nfx.try 0 (nfx.pure 42));
           expected = 42;
         };
         "try returns default on error" = {
-          expr = nfx.runFx (
-            nfx.try 99 (
-              nfx.throw' "Failed" {}
-            )
-          );
+          expr = nfx.runFx (nfx.try 99 (nfx.throw' "Failed" { }));
           expected = 99;
         };
       };
@@ -228,24 +249,45 @@ mk {
         ```nix
         mapResult (x: x * 2) { success = true; value = 21; }
         # => { success = true; value = 42; }
-        
+
         mapResult (x: x * 2) { success = false; error = {...}; }
         # => { success = false; error = {...}; }
         ```
       '';
       type = fn (fn any);
-      value = f: result:
-        if result.success
-        then { success = true; value = f result.value; }
-        else result;
+      value =
+        f: result:
+        if result.success then
+          {
+            success = true;
+            value = f result.value;
+          }
+        else
+          result;
       tests = {
         "mapResult transforms success" = {
-          expr = nfx.mapResult (x: x * 2) { success = true; value = 21; };
-          expected = { success = true; value = 42; };
+          expr = nfx.mapResult (x: x * 2) {
+            success = true;
+            value = 21;
+          };
+          expected = {
+            success = true;
+            value = 42;
+          };
         };
         "mapResult passes error" = {
-          expr = nfx.mapResult (x: x * 2) { success = false; error = { type = "Err"; }; };
-          expected = { success = false; error = { type = "Err"; }; };
+          expr = nfx.mapResult (x: x * 2) {
+            success = false;
+            error = {
+              type = "Err";
+            };
+          };
+          expected = {
+            success = false;
+            error = {
+              type = "Err";
+            };
+          };
         };
       };
     };
@@ -269,28 +311,69 @@ mk {
         validateAge = age:
           if age < 0 then { success = false; error = "negative"; }
           else { success = true; value = age; };
-        
+
         bindResult validateAge { success = true; value = 25; }
         # => { success = true; value = 25; }
         ```
       '';
       type = fn (fn any);
-      value = f: result:
-        if result.success
-        then f result.value
-        else result;
+      value = f: result: if result.success then f result.value else result;
       tests = {
         "bindResult chains success" = {
-          expr = nfx.bindResult (x: { success = true; value = x * 2; }) { success = true; value = 21; };
-          expected = { success = true; value = 42; };
+          expr =
+            nfx.bindResult
+              (x: {
+                success = true;
+                value = x * 2;
+              })
+              {
+                success = true;
+                value = 21;
+              };
+          expected = {
+            success = true;
+            value = 42;
+          };
         };
         "bindResult passes error" = {
-          expr = nfx.bindResult (x: { success = true; value = x * 2; }) { success = false; error = { type = "Err"; }; };
-          expected = { success = false; error = { type = "Err"; }; };
+          expr =
+            nfx.bindResult
+              (x: {
+                success = true;
+                value = x * 2;
+              })
+              {
+                success = false;
+                error = {
+                  type = "Err";
+                };
+              };
+          expected = {
+            success = false;
+            error = {
+              type = "Err";
+            };
+          };
         };
         "bindResult propagates inner error" = {
-          expr = nfx.bindResult (x: { success = false; error = { inner = true; }; }) { success = true; value = 42; };
-          expected = { success = false; error = { inner = true; }; };
+          expr =
+            nfx.bindResult
+              (x: {
+                success = false;
+                error = {
+                  inner = true;
+                };
+              })
+              {
+                success = true;
+                value = 42;
+              };
+          expected = {
+            success = false;
+            error = {
+              inner = true;
+            };
+          };
         };
       };
     };

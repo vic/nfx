@@ -79,12 +79,15 @@ mk {
         - `bracketOnError` - Release only on error
       '';
       type = fn (fn (fn fx));
-      value = acquire: release: use:
+      value =
+        acquire: release: use:
         nfx.do [
           (_: acquire)
-          (resource:
+          (
+            resource:
             nfx.handle "error"
-              (cond:
+              (
+                cond:
                 # On error: release then re-signal
                 nfx.do [
                   (_: release resource)
@@ -105,18 +108,29 @@ mk {
           expr = nfx.runFx (
             nfx.provide { released = false; } (
               nfx.do [
-                (_:
-                  nfx.bracket
-                    (nfx.pure "resource")
-                    (_: nfx.state.modify (s: s // { released = true; }))
-                    (r: nfx.pure (r + "-used"))
+                (
+                  _:
+                  nfx.bracket (nfx.pure "resource") (_: nfx.state.modify (s: s // { released = true; })) (
+                    r: nfx.pure (r + "-used")
+                  )
                 )
-                (result: nfx.map (s: { inherit result; released = s.released; }) nfx.state.get)
+                (
+                  result:
+                  nfx.map (s: {
+                    inherit result;
+                    released = s.released;
+                  }) nfx.state.get
+                )
               ]
             )
           );
           expected = {
-            result = { value = "resource-used"; cleanup = { released = true; }; };
+            result = {
+              value = "resource-used";
+              cleanup = {
+                released = true;
+              };
+            };
             released = true;
           };
         };
@@ -124,18 +138,21 @@ mk {
           expr = nfx.runFx (
             nfx.provide { released = false; } (
               nfx.catch' (
-                nfx.then' (nfx.state.get)
-                  (nfx.bracket
-                    (nfx.pure "resource")
-                    (_: nfx.state.modify (s: s // { released = true; }))
-                    (_: nfx.error "failure" {})
+                nfx.then' (nfx.state.get) (
+                  nfx.bracket (nfx.pure "resource") (_: nfx.state.modify (s: s // { released = true; })) (
+                    _: nfx.error "failure" { }
                   )
+                )
               )
             )
           );
           expected = {
             success = false;
-            error = { type = "error"; kind = "failure"; data = {}; };
+            error = {
+              type = "error";
+              kind = "failure";
+              data = { };
+            };
           };
         };
       };
@@ -172,17 +189,12 @@ mk {
         - `finally` - Simpler cleanup without resource
       '';
       type = fn (fn (fn fx));
-      value = acquire: release: use:
-        nfx.mapM (result: nfx.pure result.value)
-          (nfx.bracket acquire release use);
+      value =
+        acquire: release: use:
+        nfx.mapM (result: nfx.pure result.value) (nfx.bracket acquire release use);
       tests = {
         "bracket_ returns use value" = {
-          expr = nfx.runFx (
-            nfx.bracket_
-              (nfx.pure "resource")
-              (_: nfx.pure {})
-              (r: nfx.pure (r + "-used"))
-          );
+          expr = nfx.runFx (nfx.bracket_ (nfx.pure "resource") (_: nfx.pure { }) (r: nfx.pure (r + "-used")));
           expected = "resource-used";
         };
       };
@@ -216,39 +228,35 @@ mk {
         - `onSuccess` - Run only on success
       '';
       type = fn (fn fx);
-      value = effect: cleanup:
-        nfx.bracket_
-          (nfx.pure {})
-          (_: cleanup)
-          (_: effect);
+      value = effect: cleanup: nfx.bracket_ (nfx.pure { }) (_: cleanup) (_: effect);
       tests = {
         "finally runs on success" = {
           expr = nfx.runFx (
             nfx.provide { ran = false; } (
-              nfx.then' nfx.state.get
-                (nfx.finally
-                  (nfx.pure 42)
-                  (nfx.state.modify (s: s // { ran = true; }))
-                )
+              nfx.then' nfx.state.get (nfx.finally (nfx.pure 42) (nfx.state.modify (s: s // { ran = true; })))
             )
           );
-          expected = { ran = true; };
+          expected = {
+            ran = true;
+          };
         };
         "finally runs on error" = {
           expr = nfx.runFx (
             nfx.provide { ran = false; } (
               nfx.catch' (
-                nfx.then' nfx.state.get
-                  (nfx.finally
-                    (nfx.error "test" {})
-                    (nfx.state.modify (s: s // { ran = true; }))
-                  )
+                nfx.then' nfx.state.get (
+                  nfx.finally (nfx.error "test" { }) (nfx.state.modify (s: s // { ran = true; }))
+                )
               )
             )
           );
           expected = {
             success = false;
-            error = { type = "error"; kind = "test"; data = {}; };
+            error = {
+              type = "error";
+              kind = "test";
+              data = { };
+            };
           };
         };
       };
@@ -282,38 +290,36 @@ mk {
         - `bracketOnError` - Release resource only on error
       '';
       type = fn (fn fx);
-      value = effect: cleanup:
-        nfx.handle "error"
-          (cond:
-            nfx.then' (nfx.signal cond) cleanup
-          )
-          effect;
+      value = effect: cleanup: nfx.handle "error" (cond: nfx.then' (nfx.signal cond) cleanup) effect;
       tests = {
         "onError runs on failure" = {
           expr = nfx.runFx (
             nfx.provide { cleaned = false; } (
               nfx.catch' (
-                nfx.then' nfx.state.get
-                  (nfx.onError
-                    (nfx.error "test" {})
-                    (nfx.state.modify (s: s // { cleaned = true; }))
-                  )
+                nfx.then' nfx.state.get (
+                  nfx.onError (nfx.error "test" { }) (nfx.state.modify (s: s // { cleaned = true; }))
+                )
               )
             )
           );
           expected = {
             success = false;
-            error = { type = "error"; kind = "test"; data = {}; };
+            error = {
+              type = "error";
+              kind = "test";
+              data = { };
+            };
           };
         };
         "onError skips on success" = {
           expr = nfx.runFx (
             nfx.provide { cleaned = false; } (
-              nfx.then' (nfx.onError (nfx.pure 42) (nfx.state.modify (s: s // { cleaned = true; })))
-                nfx.state.get
+              nfx.then' (nfx.onError (nfx.pure 42) (nfx.state.modify (s: s // { cleaned = true; }))) nfx.state.get
             )
           );
-          expected = { cleaned = false; };
+          expected = {
+            cleaned = false;
+          };
         };
       };
     };
@@ -346,7 +352,8 @@ mk {
         - `finally` - Run on both success and failure
       '';
       type = fn (fn fx);
-      value = effect: action:
+      value =
+        effect: action:
         nfx.do [
           (_: effect)
           (value: nfx.then' (nfx.pure value) action)
@@ -355,27 +362,32 @@ mk {
         "onSuccess runs on success" = {
           expr = nfx.runFx (
             nfx.provide { committed = false; } (
-              nfx.then' (nfx.onSuccess (nfx.pure 42) (nfx.state.modify (s: s // { committed = true; })))
-                nfx.state.get
+              nfx.then' (nfx.onSuccess (nfx.pure 42) (
+                nfx.state.modify (s: s // { committed = true; })
+              )) nfx.state.get
             )
           );
-          expected = { committed = true; };
+          expected = {
+            committed = true;
+          };
         };
         "onSuccess skips on failure" = {
           expr = nfx.runFx (
             nfx.provide { committed = false; } (
               nfx.catch' (
-                nfx.then' nfx.state.get
-                  (nfx.onSuccess
-                    (nfx.error "test" {})
-                    (nfx.state.modify (s: s // { committed = true; }))
-                  )
+                nfx.then' nfx.state.get (
+                  nfx.onSuccess (nfx.error "test" { }) (nfx.state.modify (s: s // { committed = true; }))
+                )
               )
             )
           );
           expected = {
             success = false;
-            error = { type = "error"; kind = "test"; data = {}; };
+            error = {
+              type = "error";
+              kind = "test";
+              data = { };
+            };
           };
         };
       };
@@ -415,7 +427,8 @@ mk {
         - `onError` - Simpler error-only action
       '';
       type = fn (fn (fn fx));
-      value = acquire: release: use:
+      value =
+        acquire: release: use:
         nfx.do [
           (_: acquire)
           (resource: nfx.onError (use resource) (release resource))
@@ -425,32 +438,34 @@ mk {
           expr = nfx.runFx (
             nfx.provide { released = false; } (
               nfx.catch' (
-                nfx.then' nfx.state.get
-                  (nfx.bracketOnError
-                    (nfx.pure "resource")
-                    (_: nfx.state.modify (s: s // { released = true; }))
-                    (_: nfx.error "failure" {})
+                nfx.then' nfx.state.get (
+                  nfx.bracketOnError (nfx.pure "resource") (_: nfx.state.modify (s: s // { released = true; })) (
+                    _: nfx.error "failure" { }
                   )
+                )
               )
             )
           );
           expected = {
             success = false;
-            error = { type = "error"; kind = "failure"; data = {}; };
+            error = {
+              type = "error";
+              kind = "failure";
+              data = { };
+            };
           };
         };
         "bracketOnError keeps resource on success" = {
           expr = nfx.runFx (
             nfx.provide { released = false; } (
-              nfx.then' (
-                nfx.bracketOnError
-                  (nfx.pure "resource")
-                  (_: nfx.state.modify (s: s // { released = true; }))
-                  (r: nfx.pure (r + "-used"))
-              ) nfx.state.get
+              nfx.then' (nfx.bracketOnError (nfx.pure "resource") (
+                _: nfx.state.modify (s: s // { released = true; })
+              ) (r: nfx.pure (r + "-used"))) nfx.state.get
             )
           );
-          expected = { released = false; };
+          expected = {
+            released = false;
+          };
         };
       };
     };

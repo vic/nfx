@@ -84,7 +84,8 @@ mk {
         - `andNil` - Extends context given unit on right
       '';
       type = fn (fn fx);
-      value = a: e:
+      value =
+        a: e:
         nfx.contraMap (b: {
           fst = a;
           snd = b;
@@ -130,7 +131,8 @@ mk {
         - `provideLeft` - Standard paired context provision
       '';
       type = fn (fn (fn (fn fx)));
-      value = a: cmap: fmap: e:
+      value =
+        a: cmap: fmap: e:
         nfx.contraMap (b: cmap a b) fmap e;
       tests = {
         "providePart provides partial context" = {

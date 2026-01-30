@@ -42,7 +42,8 @@ mk {
         - `then'` - When first value is ignored
       '';
       type = fn (fn fx);
-      value = f: e:
+      value =
+        f: e:
         nfx.adapt e (s: s) (
           _t: s: v:
           nfx.contraMap (_: s) (_outer: s2: s2) (f v)
@@ -130,7 +131,8 @@ mk {
         - `andThen` - Like flatMap but discards first value
       '';
       type = fn (fn fx);
-      value = f: e:
+      value =
+        f: e:
         nfx.adapt e (ctx: ctx.fst) (
           _: s: v:
           nfx.adapt (f v) (ctx: ctx.snd) (

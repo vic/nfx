@@ -87,7 +87,11 @@ mk {
       tests = {
         "list appends items" = {
           expr = nfx.runFx (nfx.acc.list [ 1 2 ] 3);
-          expected = [ 1 2 3 ];
+          expected = [
+            1
+            2
+            3
+          ];
         };
         "list starts empty" = {
           expr = nfx.runFx (nfx.acc.list [ ] 1);
@@ -171,19 +175,22 @@ mk {
         - `collectWith` - Use custom accumulator function
         - `withAccumulator` - Extract only accumulator
       '';
-      value = initial: e:
-        nfx.mapM (v:
-          nfx.map (ctx: {
-            acc = ctx.acc;
-            value = v;
-          }) nfx.state.get
-        ) (nfx.contraMap
-          (s: {
-            acc = initial;
-            state = s;
-          })
-          (_: ctx: ctx)
-          e);
+      value =
+        initial: e:
+        nfx.mapM
+          (
+            v:
+            nfx.map (ctx: {
+              acc = ctx.acc;
+              value = v;
+            }) nfx.state.get
+          )
+          (
+            nfx.contraMap (s: {
+              acc = initial;
+              state = s;
+            }) (_: ctx: ctx) e
+          );
       tests = {
         "collect threads accumulator through state" = {
           expr = nfx.runFx (
@@ -236,24 +243,25 @@ mk {
         - `collect` - Standard list collection
         - `option`, `list`, `set` - Built-in accumulators
       '';
-      value = initial: accFn: e:
-        nfx.mapM (v:
-          nfx.map (ctx: {
-            acc = ctx.acc;
-            value = v;
-          }) nfx.state.get
-        ) (nfx.contraMap
-          (s: {
-            acc = initial;
-            state = s;
-          })
-          (_: ctx: ctx)
-          e);
+      value =
+        initial: accFn: e:
+        nfx.mapM
+          (
+            v:
+            nfx.map (ctx: {
+              acc = ctx.acc;
+              value = v;
+            }) nfx.state.get
+          )
+          (
+            nfx.contraMap (s: {
+              acc = initial;
+              state = s;
+            }) (_: ctx: ctx) e
+          );
       tests = {
         "collectWith uses custom accumulator" = {
-          expr = nfx.runFx (
-            nfx.provide 5 (nfx.acc.collectWith [ ] nfx.acc.list (nfx.func (ctx: ctx.state)))
-          );
+          expr = nfx.runFx (nfx.provide 5 (nfx.acc.collectWith [ ] nfx.acc.list (nfx.func (ctx: ctx.state))));
           expected = {
             acc = [ ];
             value = 5;
@@ -287,7 +295,8 @@ mk {
         - `collectWith` - Set up custom accumulation
         - `collect` - Standard list accumulation
       '';
-      value = accFn: item:
+      value =
+        accFn: item:
         nfx.pending (
           ctx:
           let
@@ -303,9 +312,7 @@ mk {
         "accumulate updates accumulator in context" = {
           expr = nfx.runFx (
             nfx.provide 10 (
-              nfx.acc.collect [ ] (
-                nfx.mapM (_: nfx.value 42) (nfx.acc.accumulate nfx.acc.list 99)
-              )
+              nfx.acc.collect [ ] (nfx.mapM (_: nfx.value 42) (nfx.acc.accumulate nfx.acc.list 99))
             )
           );
           expected = {
@@ -342,8 +349,7 @@ mk {
         - `collect` - Returns both accumulator and value
         - `collectWith` - With custom accumulator
       '';
-      value = initial: e:
-        nfx.map (result: result.acc) (nfx.acc.collect initial e);
+      value = initial: e: nfx.map (result: result.acc) (nfx.acc.collect initial e);
       tests = {
         "withAccumulator returns only accumulator" = {
           expr = nfx.runFx (

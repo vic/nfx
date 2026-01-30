@@ -36,11 +36,13 @@ mk {
     get = nfx.pending (s: nfx.immediate s s);
     set = s: nfx.immediate s s;
     modify = f: nfx.mapM (s: nfx.state.set (f s)) nfx.state.get;
-    modifyM = f: nfx.do [
-      (_: nfx.state.get)
-      (s: f s)
-      (newState: nfx.state.set newState)
-    ];
+    modifyM =
+      f:
+      nfx.do [
+        (_: nfx.state.get)
+        (s: f s)
+        (newState: nfx.state.set newState)
+      ];
   };
   tests = {
     "state.get reads state" = {

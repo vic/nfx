@@ -44,7 +44,8 @@ mk {
         - `provide` - Supplies abilities to effects
       '';
       type = fn (fn fx);
-      value = name: input:
+      value =
+        name: input:
         nfx.pending (
           ctx:
           let

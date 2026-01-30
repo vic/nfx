@@ -31,20 +31,34 @@ mk {
         - `zip` - Combine elements pairwise
       '';
       type = fn (fn fx);
-      value = s1: s2:
-        nfx.flatMap (step:
-          if step.more
-          then nfx.stream.more step.value (concat.value step.next s2)
-          else s2
+      value =
+        s1: s2:
+        nfx.flatMap (
+          step: if step.more then nfx.stream.more step.value (concat.value step.next s2) else s2
         ) s1;
       tests = {
         "concat.value joins streams" = {
           expr = nfx.runFx (
             nfx.stream.toList (
-              concat.value (nfx.stream.fromList [ 1 2 ]) (nfx.stream.fromList [ 3 4 ])
+              concat.value
+                (nfx.stream.fromList [
+                  1
+                  2
+                ])
+                (
+                  nfx.stream.fromList [
+                    3
+                    4
+                  ]
+                )
             )
           );
-          expected = [ 1 2 3 4 ];
+          expected = [
+            1
+            2
+            3
+            4
+          ];
         };
       };
     };
@@ -83,42 +97,68 @@ mk {
         - Logic programming: mplus (OR) operation
       '';
       type = fn (fn fx);
-      value = s1: s2:
-        nfx.flatMap (step:
-          if step.more
-          then nfx.stream.more step.value (interleave.value s2 step.next)
-          else s2
+      value =
+        s1: s2:
+        nfx.flatMap (
+          step: if step.more then nfx.stream.more step.value (interleave.value s2 step.next) else s2
         ) s1;
       tests = {
         "interleave.value fairly alternates" = {
           expr = nfx.runFx (
             nfx.stream.toList (
               interleave.value
-                (nfx.stream.fromList [ 1 2 3 ])
-                (nfx.stream.fromList [ 10 20 30 ])
+                (nfx.stream.fromList [
+                  1
+                  2
+                  3
+                ])
+                (
+                  nfx.stream.fromList [
+                    10
+                    20
+                    30
+                  ]
+                )
             )
           );
-          expected = [ 1 10 2 20 3 30 ];
+          expected = [
+            1
+            10
+            2
+            20
+            3
+            30
+          ];
         };
         "interleave.value handles empty first" = {
           expr = nfx.runFx (
             nfx.stream.toList (
-              interleave.value
-                nfx.stream.done
-                (nfx.stream.fromList [ 1 2 ])
+              interleave.value nfx.stream.done (
+                nfx.stream.fromList [
+                  1
+                  2
+                ]
+              )
             )
           );
-          expected = [ 1 2 ];
+          expected = [
+            1
+            2
+          ];
         };
         "interleave.value handles empty second" = {
           expr = nfx.runFx (
             nfx.stream.toList (
-              interleave.value
-                (nfx.stream.fromList [ 1 2 ])
-                nfx.stream.done
+              interleave.value (nfx.stream.fromList [
+                1
+                2
+              ]) nfx.stream.done
             )
           );
-          expected = [ 1 2 ];
+          expected = [
+            1
+            2
+          ];
         };
       };
     };
@@ -150,11 +190,10 @@ mk {
         - `interleave` - Fair stream combination
       '';
       type = fn fx;
-      value = stream:
-        nfx.flatMap (step:
-          if !step.more
-          then nfx.stream.done
-          else concat.value step.value (flatten.value step.next)
+      value =
+        stream:
+        nfx.flatMap (
+          step: if !step.more then nfx.stream.done else concat.value step.value (flatten.value step.next)
         ) stream;
       tests = {
         "flatten.value concatenates nested" = {
@@ -162,13 +201,24 @@ mk {
             nfx.stream.toList (
               flatten.value (
                 nfx.stream.fromList [
-                  (nfx.stream.fromList [ 1 2 ])
-                  (nfx.stream.fromList [ 3 4 ])
+                  (nfx.stream.fromList [
+                    1
+                    2
+                  ])
+                  (nfx.stream.fromList [
+                    3
+                    4
+                  ])
                 ]
               )
             )
           );
-          expected = [ 1 2 3 4 ];
+          expected = [
+            1
+            2
+            3
+            4
+          ];
         };
       };
     };
@@ -198,22 +248,38 @@ mk {
         - `flatten` - Flatten without mapping
       '';
       type = fn (fn fx);
-      value = f: stream:
-        nfx.flatMap (step:
-          if !step.more
-          then nfx.stream.done
-          else concat.value (f step.value) (flatMap.value f step.next)
+      value =
+        f: stream:
+        nfx.flatMap (
+          step:
+          if !step.more then nfx.stream.done else concat.value (f step.value) (flatMap.value f step.next)
         ) stream;
       tests = {
         "flatMap.value duplicates elements" = {
           expr = nfx.runFx (
             nfx.stream.toList (
               flatMap.value
-                (x: nfx.stream.fromList [ x x ])
-                (nfx.stream.fromList [ 1 2 ])
+                (
+                  x:
+                  nfx.stream.fromList [
+                    x
+                    x
+                  ]
+                )
+                (
+                  nfx.stream.fromList [
+                    1
+                    2
+                  ]
+                )
             )
           );
-          expected = [ 1 1 2 2 ];
+          expected = [
+            1
+            1
+            2
+            2
+          ];
         };
       };
     };
@@ -242,34 +308,56 @@ mk {
         - `concat` - Sequential combination
       '';
       type = fn (fn fx);
-      value = s1: s2:
-        nfx.flatMap (step1:
-          if !step1.more
-          then nfx.stream.done
-          else nfx.flatMap (step2:
-            if !step2.more
-            then nfx.stream.done
-            else nfx.stream.more
-              {
-                fst = step1.value;
-                snd = step2.value;
-              }
-              (zip.value step1.next step2.next)
-          ) s2
+      value =
+        s1: s2:
+        nfx.flatMap (
+          step1:
+          if !step1.more then
+            nfx.stream.done
+          else
+            nfx.flatMap (
+              step2:
+              if !step2.more then
+                nfx.stream.done
+              else
+                nfx.stream.more {
+                  fst = step1.value;
+                  snd = step2.value;
+                } (zip.value step1.next step2.next)
+            ) s2
         ) s1;
       tests = {
         "zip pairs elements" = {
           expr = nfx.runFx (
             nfx.stream.toList (
               zip.value
-                (nfx.stream.fromList [ 1 2 3 ])
-                (nfx.stream.fromList [ 4 5 6 ])
+                (nfx.stream.fromList [
+                  1
+                  2
+                  3
+                ])
+                (
+                  nfx.stream.fromList [
+                    4
+                    5
+                    6
+                  ]
+                )
             )
           );
           expected = [
-            { fst = 1; snd = 4; }
-            { fst = 2; snd = 5; }
-            { fst = 3; snd = 6; }
+            {
+              fst = 1;
+              snd = 4;
+            }
+            {
+              fst = 2;
+              snd = 5;
+            }
+            {
+              fst = 3;
+              snd = 6;
+            }
           ];
         };
       };
