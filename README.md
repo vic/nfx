@@ -15,7 +15,7 @@
 
 ## Architecture
 
-Built from four primitives in ~30 lines:
+Built from four [kernel primitives](https://github.com/vic/nfx/blob/main/nix/kernel.nix) in ~30 lines:
 
 1. **immediate** - Effect with resolved value
 2. **pending** - Effect awaiting context  
